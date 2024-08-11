@@ -23,14 +23,20 @@
             transition: opacity 0.3s;
             z-index: 1;
         }
-        .biodata-card:hover .btn {
-            opacity: 1;
-        }
-        .btn-edit {
+        .btn-edit{
             left: 10px;
+        }
+        .btn-setor {
+            left: 70px;
         }
         .btn-delete {
             right: 10px;
+        }
+        .btn-tarik {
+            right: 80px;
+        }
+        .biodata-card:hover .btn {
+            opacity: 1;
         }
         .card-title {
             font-size: 1.2rem;
@@ -53,10 +59,9 @@
               <a class="navbar-brand" href="#">Nasabah</a>
               <a class="navbar-brand" href="Kelas">Kelas</a>
               <a class="navbar-brand" href="Jurusan">Jurusan</a>
+              <a class="navbar-brand" href="Transaksi">Data Transaksi</a>
             </div>
             <div>
-                <a href="Transaksi/setor.php" class="btn btn-primary">Setor</a>
-                <a href="Transaksi/tarik.php" class="btn btn-primary me-3">Tarik</a>
                 <a href="Add" class="btn btn-primary">Add Nasabah</a>
             </div>
         </div>
@@ -121,8 +126,9 @@
 
                     $sql .= " LIMIT $records_per_page OFFSET $offset";
                     $result = $conn->query($sql);
+                    $total_data = $result->num_rows;
 
-                    if ($result->num_rows > 0) {
+                    if ($total_data > 0) {
                         $count = 0;
                         echo '<div class="row">';
                         while($row = $result->fetch_assoc()) {
@@ -141,28 +147,58 @@
                             echo '<p class="card-text"><i class="fas fa-wallet icon-title"></i> ' . htmlspecialchars($row["saldo"]) . '</p>';
                             echo '<p class="card-text"><i class="fas fa-tag icon-title"></i> ' . htmlspecialchars($row["status"]) . '</p>';
                             echo '</div>';
+                        
+                            // Cek status nasabah
+                            $is_active = $row["status"] == 'active';
+                        
+                            // Tombol Edit dan Delete selalu ditampilkan
                             echo '<a href="Edit?id=' . $row["id"] . '" class="btn btn-warning btn-sm btn-edit">Edit</a>';
                             echo '<a href="#" onclick="confirmDelete(' . $row["id"] . ')" class="btn btn-danger btn-sm btn-delete">Delete</a>';
-                            echo '</div>';
+                        
+                            // Tombol Setor dan Tarik hanya ditampilkan jika status nasabah aktif
+                            if ($is_active) {
+                                echo '<a href="Transaksi/setor.php?id=' . $row["id"] . '&nama=' . urlencode($row["nama"]) . '&saldo=' . urlencode($row["saldo"]) . '" class="btn btn-primary btn-sm btn-setor">Setor</a>';
+                                echo '<a href="Transaksi/tarik.php?id=' . $row["id"] . '&nama=' . urlencode($row["nama"]) . '&saldo=' . urlencode($row["saldo"]) . '" class="btn btn-secondary btn-sm btn-tarik">Tarik</a>';
+                            }
+                        
+                            echo '</div>'; // Close card
                             echo '</div>';
                             $count++;
                         }
+                        
+                        
                         echo '</div>';
 
+                        // Hitung total halaman
+                        $count_sql = "SELECT COUNT(*) as total FROM nasabah WHERE 1=1";
+                        if ($search != '') {
+                            $count_sql .= " AND nama LIKE '%" . $conn->real_escape_string($search) . "%'";
+                        }
+                        if ($status != '') {
+                            $count_sql .= " AND status = '" . $conn->real_escape_string($status) . "'";
+                        }
+                        $count_result = $conn->query($count_sql);
+                        $count_row = $count_result->fetch_assoc();
+                        $total_records = $count_row['total'];
+                        
                         $total_pages = ceil($total_records / $records_per_page);
-                        echo '<nav aria-label="Page navigation">';
-                        echo '<ul class="pagination">';
-                        if ($page > 1) {
-                            echo '<li class="page-item"><a class="page-link" href="?page=' . ($page - 1) . '&search=' . htmlspecialchars($search) . '&status=' . htmlspecialchars($status) . '">Previous</a></li>';
+                        
+                        // Tampilkan pagination hanya jika total pages lebih dari 1
+                        if ($total_pages > 1) {
+                            echo '<nav aria-label="Page navigation">';
+                            echo '<ul class="pagination">';
+                            if ($page > 1) {
+                                echo '<li class="page-item"><a class="page-link" href="?page=' . ($page - 1) . '&search=' . htmlspecialchars($search) . '&status=' . htmlspecialchars($status) . '">Previous</a></li>';
+                            }
+                            for ($i = 1; $i <= $total_pages; $i++) {
+                                echo '<li class="page-item ' . ($i == $page ? 'active' : '') . '"><a class="page-link" href="?page=' . $i . '&search=' . htmlspecialchars($search) . '&status=' . htmlspecialchars($status) . '">' . $i . '</a></li>';
+                            }
+                            if ($page < $total_pages) {
+                                echo '<li class="page-item"><a class="page-link" href="?page=' . ($page + 1) . '&search=' . htmlspecialchars($search) . '&status=' . htmlspecialchars($status) . '">Next</a></li>';
+                            }
+                            echo '</ul>';
+                            echo '</nav>';
                         }
-                        for ($i = 1; $i <= $total_pages; $i++) {
-                            echo '<li class="page-item ' . ($i == $page ? 'active' : '') . '"><a class="page-link" href="?page=' . $i . '&search=' . htmlspecialchars($search) . '&status=' . htmlspecialchars($status) . '">' . $i . '</a></li>';
-                        }
-                        if ($page < $total_pages) {
-                            echo '<li class="page-item"><a class="page-link" href="?page=' . ($page + 1) . '&search=' . htmlspecialchars($search) . '&status=' . htmlspecialchars($status) . '">Next</a></li>';
-                        }
-                        echo '</ul>';
-                        echo '</nav>';
                     } else {
                         echo "0 results";
                     }
