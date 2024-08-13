@@ -4,22 +4,18 @@ $username = "root";
 $password = "";
 $dbname = "bank_mini";
 
-// Membuat koneksi
 $conn = new mysqli($servername, $username, $password, $dbname);
 
-// Mengecek koneksi
 if ($conn->connect_error) {
     die("Koneksi gagal: " . $conn->connect_error);
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Mengambil data dari form
     $nama = $conn->real_escape_string($_POST['nama']);
     $no_rekening = $conn->real_escape_string($_POST['no_rekening']);
     $jumlah = (float)$_POST['jumlah'];  // Pastikan jumlah adalah float
     $tipe = $conn->real_escape_string($_POST['tipe']);
 
-    // Mengambil saldo saat ini
     $sql = "SELECT saldo FROM nasabah WHERE no_rekening = ?";
     $stmt = $conn->prepare($sql);
     if ($stmt === false) {
@@ -64,7 +60,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $message = "Tipe transaksi tidak valid!";
         }
 
-        // Menyimpan transaksi
         $sql_transaksi = "INSERT INTO transaksi (nama, no_rekening, tipe, jumlah) VALUES (?, ?, ?, ?)";
         $stmt_transaksi = $conn->prepare($sql_transaksi);
         if ($stmt_transaksi === false) {
@@ -77,7 +72,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $message = "Data nasabah tidak ditemukan!";
     }
 
-    // Menutup statement
     $stmt->close();
     if (isset($stmt_update)) {
         $stmt_update->close();
@@ -87,11 +81,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     $conn->close();
 
-    // Mengarahkan dan memberikan umpan balik
     echo "<script>
             alert('$message');
             window.location.href = '../';
-          </script>";
+            </script>";
     exit;
 }
 
