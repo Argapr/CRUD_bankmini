@@ -59,7 +59,8 @@
               <a class="navbar-brand" href="#">Nasabah</a>
               <a class="navbar-brand" href="Kelas">Kelas</a>
               <a class="navbar-brand" href="Jurusan">Jurusan</a>
-              <a class="navbar-brand" href="Transaksi">Data Transaksi</a>
+              <a class="navbar-brand" href="Transaksi">Transaksi</a>
+              <a class="navbar-brand" href="Rekap">Rekap</a>
             </div>
             <div>
                 <a href="Add" class="btn btn-primary">Add Nasabah</a>

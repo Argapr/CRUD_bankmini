@@ -4,6 +4,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     $nama = $_POST["nama"];
     $no_rekening = $_POST["no_rekening"];
+    $nisn = $_POST["nisn"];
     $kelas_id = $_POST["kelas_id"];
     $jurusan_id = $_POST["jurusan_id"];
     $jenis_kelamin = $_POST["jenis_kelamin"];
@@ -11,8 +12,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $saldo = $_POST["saldo"];
     $status = $_POST["status"];
 
-    $sql = "INSERT INTO nasabah (nama, no_rekening, kelas_id, jurusan_id, jenis_kelamin, tanggal_pembuatan, saldo, status)
-            VALUES ('$nama', '$no_rekening', '$kelas_id', '$jurusan_id', '$jenis_kelamin', '$tanggal_pembuatan', '$saldo', '$status')";
+    $sql = "INSERT INTO nasabah (nama, no_rekening, nisn, kelas_id, jurusan_id, jenis_kelamin, tanggal_pembuatan, saldo, status)
+            VALUES ('$nama', '$no_rekening', '$nisn', '$kelas_id', '$jurusan_id', '$jenis_kelamin', '$tanggal_pembuatan', '$saldo', '$status')";
 
     if ($conn->query($sql) === TRUE) {
         header("Location: ../index.php");
@@ -84,17 +85,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
               <input type="text" class="form-control" id="no_rekening" name="no_rekening" placeholder="Masukan No Rekening">
             </div>
             <div class="col-md-4 mb-3">
-              <select name="kelas_id" id="kelas" class="form-control">
-                <option value="">Pilih Kelas Anda</option>
-                <?php
-                include '../db_connect.php';
-                $kelasQuery = "SELECT * FROM kelas";
-                $kelasResult = $conn->query($kelasQuery);
-                while ($row = $kelasResult->fetch_assoc()):
-                ?>
-                  <option value="<?php echo $row['id']; ?>"><?php echo $row['nama']; ?></option>
-                <?php endwhile; ?>
-              </select>
+              <input type="text" class="form-control" id="nisn" name="nisn" placeholder="Masukan NISN">
             </div>
           </div>
           <div class="row mt-3">
@@ -137,6 +128,19 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             </div>
             <div class="col-md-4 mb-3">
               <input type="date" class="form-control" id="tanggal_pembuatan" name="tanggal_pembuatan" placeholder="Tanggal Pembuatan">
+            </div>
+            <div class="col-md-4 mb-3">
+              <select name="kelas_id" id="kelas" class="form-control">
+                <option value="">Pilih Kelas Anda</option>
+                <?php
+                include '../db_connect.php';
+                $kelasQuery = "SELECT * FROM kelas";
+                $kelasResult = $conn->query($kelasQuery);
+                while ($row = $kelasResult->fetch_assoc()):
+                ?>
+                  <option value="<?php echo $row['id']; ?>"><?php echo $row['nama']; ?></option>
+                <?php endwhile; ?>
+              </select>
             </div>
           </div>
         </div>
