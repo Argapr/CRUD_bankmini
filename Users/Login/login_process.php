@@ -17,31 +17,15 @@ try {
 
     // Cek apakah nasabah ditemukan
     if ($nasabah) {
-        // Jika password masih NULL (pengguna baru pertama kali login)
-        if (is_null($nasabah['password'])) {
-            // Set password acak yang diinput pengguna sebagai password baru
-            $hashed_password = password_hash($input_password, PASSWORD_DEFAULT);
-
-            // Update password di database
-            $update_stmt = $pdo->prepare('UPDATE nasabah SET password = ? WHERE id = ?');
-            $update_stmt->execute([$hashed_password, $nasabah['id']]);
-
-            // Simpan data di session
+        // Verifikasi password yang diinput
+        if ($input_password === $nasabah['password']) {
+            // Jika password benar, simpan data di session
             $_SESSION['loggedin'] = true;
             $_SESSION['nasabah_id'] = $nasabah['id'];
             header('Location: ../?id=' . $nasabah['id']);
             exit;
         } else {
-            // Jika password sudah ada, verifikasi password yang diinput
-            if (password_verify($input_password, $nasabah['password'])) {
-                // Jika password benar, simpan data di session
-                $_SESSION['loggedin'] = true;
-                $_SESSION['nasabah_id'] = $nasabah['id'];
-                header('Location: ../?id=' . $nasabah['id']);
-                exit;
-            } else {
-                echo 'Login gagal, NISN atau password salah!';
-            }
+            echo 'Login gagal, password yang Anda masukkan salah!';
         }
     } else {
         echo 'Login gagal, NISN tidak ditemukan!';

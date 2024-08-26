@@ -11,20 +11,35 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $tanggal_pembuatan = $_POST["tanggal_pembuatan"];
     $saldo = $_POST["saldo"];
     $status = $_POST["status"];
+    
+    $password = "123455";
 
-    $sql = "INSERT INTO nasabah (nama, no_rekening, nisn, kelas_id, jurusan_id, jenis_kelamin, tanggal_pembuatan, saldo, status)
-            VALUES ('$nama', '$no_rekening', '$nisn', '$kelas_id', '$jurusan_id', '$jenis_kelamin', '$tanggal_pembuatan', '$saldo', '$status')";
-
-    if ($conn->query($sql) === TRUE) {
-        header("Location: ../index.php");
-        exit();
+    // Check if NISN already exists
+    $check_nisn_stmt = $conn->prepare("SELECT COUNT(*) FROM nasabah WHERE nisn = ?");
+    $check_nisn_stmt->bind_param("s", $nisn);
+    $check_nisn_stmt->execute();
+    $nisn_count = $check_nisn_stmt->get_result()->fetch_column();
+    
+    if ($nisn_count > 0) {
+        echo '<div class="alert alert-danger" role="alert">NISN sudah digunakan!</div>';
     } else {
-        echo "Error: " . $sql . "<br>" . $conn->error;
+        // Insert new nasabah
+        $sql = "INSERT INTO nasabah (nama, no_rekening, nisn, kelas_id, jurusan_id, jenis_kelamin, tanggal_pembuatan, saldo, status, password)
+                VALUES ('$nama', '$no_rekening', '$nisn', '$kelas_id', '$jurusan_id', '$jenis_kelamin', '$tanggal_pembuatan', '$saldo', '$status', '$password')";
+
+        if ($conn->query($sql) === TRUE) {
+            header("Location: ../index.php");
+            exit();
+        } else {
+            echo "Error: " . $sql . "<br>" . $conn->error;
+        }
     }
 
     $conn->close();
 }
 ?>
+
+
 <!doctype html>
 <html lang="en">
 <head>
@@ -108,7 +123,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
               <select name="jurusan_id" id="jurusan" class="form-control">
                 <option value="">Pilih Jurusan Anda</option>
                 <?php
-                include '../db_connect.php';
+                include '../db_connect.php';  
                 $jurusanQuery = "SELECT * FROM jurusan";
                 $jurusanResult = $conn->query($jurusanQuery);
                 while ($row = $jurusanResult->fetch_assoc()):

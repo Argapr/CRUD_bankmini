@@ -1,45 +1,62 @@
 <?php
 session_start();
 
-// Cek apakah pengguna sudah login
 if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
     header('Location: Login');
     exit;
 }
 
-// Koneksi ke database
 try {
     $pdo = new PDO('mysql:host=localhost;dbname=bank_mini', 'root', '');
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
     $nasabah_id = $_SESSION['nasabah_id'];
 
-    // Proses pembaruan password jika formulir dikirim
     if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['new_password'])) {
+        $old_password = $_POST['old_password'];
         $new_password = $_POST['new_password'];
         $confirm_password = $_POST['confirm_password'];
+    
+        // Mendapatkan password lama dari database tanpa hashing
+        $stmt = $pdo->prepare('SELECT password FROM nasabah WHERE id = ?');
+        $stmt->execute([$nasabah_id]);
+        $current_password = $stmt->fetchColumn();
 
-        // Validasi konfirmasi password
-        if ($new_password === $confirm_password) {
-            // Hash password baru
-            $hashed_password = password_hash($new_password, PASSWORD_DEFAULT);
-
-            // Update password di database
-            $update_stmt = $pdo->prepare('UPDATE nasabah SET password = ? WHERE id = ?');
-            $update_stmt->execute([$hashed_password, $nasabah_id]);
-
-            echo '<p>Password berhasil diperbarui!</p>';
+        echo "Password Lama dari Input: " . $old_password . "<br>";
+        echo "Password Lama dari Database: " . $current_password . "<br>";
+    
+        // Memverifikasi password lama tanpa hashing
+        if ($old_password === $current_password) {
+            if ($new_password === $confirm_password) {
+                // Update password baru ke database tanpa hashing
+                $update_stmt = $pdo->prepare('UPDATE nasabah SET password = ? WHERE id = ?');
+                $update_stmt->execute([$new_password, $nasabah_id]);
+    
+                echo '<div class="alert alert-success" role="alert">Password berhasil diperbarui!</div>';
+            } else {
+                echo '<div class="alert alert-danger" role="alert">Password baru tidak cocok dengan konfirmasi password!</div>';
+            }
         } else {
-            echo '<p>Password tidak cocok dengan konfirmasi password!</p>';
+            echo '<div class="alert alert-danger" role="alert">Password lama tidak sesuai!</div>';
         }
     }
-
-    // Ambil data nasabah
+    
+    // Mendapatkan data nasabah
     $stmt = $pdo->prepare('SELECT * FROM nasabah WHERE id = ?');
     $stmt->execute([$nasabah_id]);
     $nasabah = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    // Ambil data transaksi berdasarkan no_rekening
+    // Mendapatkan nama kelas
+    $stmt = $pdo->prepare('SELECT nama FROM kelas WHERE id = ?');
+    $stmt->execute([$nasabah['kelas_id']]);
+    $kelas = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    // Mendapatkan nama jurusan
+    $stmt = $pdo->prepare('SELECT nama FROM jurusan WHERE id = ?');
+    $stmt->execute([$nasabah['jurusan_id']]);
+    $jurusan = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    // Mendapatkan transaksi
     $stmt = $pdo->prepare('SELECT * FROM transaksi WHERE no_rekening = ? ORDER BY tanggal DESC');
     $stmt->execute([$nasabah['no_rekening']]);
     $transaksi = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -49,220 +66,142 @@ try {
 }
 ?>
 
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <title>Profil Nasabah</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
-            margin: 0;
-            padding: 0;
+            background-color: #f8f9fa;
         }
 
         .container {
-            width: 80%;
-            margin: 20px auto;
+            max-width: 800px;
+            margin: 40px auto;
             padding: 20px;
             background-color: #fff;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
             border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }
 
-        h2 {
-            color: #333;
-        }
-
-        p {
-            font-size: 16px;
-            margin: 10px 0;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 20px 0;
-        }
-
-        th, td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: center;
-        }
-
-        th {
-            background-color: #f2f2f2;
-            color: #333;
-        }
-
-        tr:nth-child(even) {
-            background-color: #f9f9f9;
-        }
-
-        .button {
-            display: inline-block;
-            padding: 10px 15px;
-            margin: 5px 0;
-            font-size: 16px;
-            color: #fff;
-            background-color: #007bff;
-            border: none;
-            border-radius: 5px;
-            text-decoration: none;
-            text-align: center;
-            cursor: pointer;
-        }
-
-        .button:hover {
-            background-color: #0056b3;
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            overflow: auto;
-            background-color: rgba(0, 0, 0, 0.4);
-            padding-top: 60px;
+        .table th, .table td {
+            vertical-align: middle;
         }
 
         .modal-content {
-            background-color: #fff;
-            margin: 5% auto;
-            padding: 20px;
-            border: 1px solid #888;
-            width: 80%;
-            max-width: 400px;
             border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }
 
         .modal-header {
+            border-bottom: none;
+        }
+
+        .modal-footer {
+            border-top: none;
             display: flex;
-            justify-content: space-between;
-            align-items: center;
+            justify-content: center;
         }
 
-        .modal-header h2 {
-            margin: 0;
-        }
-
-        .close {
-            color: #aaa;
-            font-size: 28px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-
-        .close:hover,
-        .close:focus {
-            color: #000;
-        }
-
-        .modal-body {
-            margin: 20px 0;
-        }
-
-        .modal-body label {
-            display: block;
-            margin-bottom: 5px;
-        }
-
-        .modal-body input[type="password"] {
-            width: 100%;
-            padding: 10px;
-            margin-bottom: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-
-        .modal-body input[type="submit"] {
+        .btn-primary {
             background-color: #007bff;
-            color: #fff;
-            border: none;
-            padding: 10px;
-            border-radius: 4px;
-            cursor: pointer;
+            border-color: #007bff;
+            transition: background-color 0.3s ease;
         }
 
-        .modal-body input[type="submit"]:hover {
+        .btn-primary:hover {
             background-color: #0056b3;
         }
     </style>
     <script>
         function openModal() {
-            document.getElementById("editPasswordModal").style.display = "block";
+            var modal = new bootstrap.Modal(document.getElementById("editPasswordModal"));
+            modal.show();
         }
 
         function closeModal() {
-            document.getElementById("editPasswordModal").style.display = "none";
-        }
-
-        window.onclick = function(event) {
-            if (event.target == document.getElementById("editPasswordModal")) {
-                closeModal();
-            }
+            var modal = bootstrap.Modal.getInstance(document.getElementById("editPasswordModal"));
+            modal.hide();
         }
     </script>
 </head>
 <body>
     <div class="container">
-        <h2>Profil Pengguna</h2>
+        <h2 class="mb-4">Profil Pengguna</h2>
         <p><strong>Nama:</strong> <?php echo htmlspecialchars($nasabah['nama']); ?></p>
+        <p><strong>NISN:</strong> <?php echo htmlspecialchars($nasabah['nisn']); ?></p>
         <p><strong>No. Rekening:</strong> <?php echo htmlspecialchars($nasabah['no_rekening']); ?></p>
         <p><strong>Jenis Kelamin:</strong> <?php echo htmlspecialchars($nasabah['jenis_kelamin']); ?></p>
         <p><strong>Tanggal Pembuatan:</strong> <?php echo htmlspecialchars($nasabah['tanggal_pembuatan']); ?></p>
         <p><strong>Saldo:</strong> <?php echo number_format($nasabah['saldo'], 2); ?></p>
         <p><strong>Status:</strong> <?php echo ucfirst(htmlspecialchars($nasabah['status'])); ?></p>
-
-        <!-- Tambahkan ikon edit password -->
+        <p><strong>Kelas:</strong> <?php echo htmlspecialchars($kelas['nama']); ?></p>
+        <p><strong>Jurusan:</strong> <?php echo htmlspecialchars($jurusan['nama']); ?></p>
         <p>
             <strong>Password:</strong> ******
-            <a href="javascript:void(0)" class="button" onclick="openModal()">Edit</a>
+            <button type="button" class="btn btn-primary btn-sm ms-3" onclick="openModal()">Edit Password</button>
         </p>
 
-        <h2>Riwayat Transaksi</h2>
-        <table>
-            <tr>
-                <th>Tanggal</th>
-                <th>Jumlah</th>
-                <th>Tipe</th>
-            </tr>
-            <?php foreach ($transaksi as $t): ?>
-            <tr>
-                <td><?php echo htmlspecialchars($t['tanggal']); ?></td>
-                <td><?php echo number_format($t['jumlah'], 2); ?></td>
-                <td><?php echo ucfirst(htmlspecialchars($t['tipe'])); ?></td>
-            </tr>
-            <?php endforeach; ?>
+        <h2 class="mt-5">Riwayat Transaksi</h2>
+        <table class="table table-striped mt-3">
+            <thead>
+                <tr>
+                    <th>Tanggal</th>
+                    <th>Jumlah</th>
+                    <th>Tipe</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($transaksi as $t): ?>
+                <tr>
+                    <td><?php echo htmlspecialchars($t['tanggal']); ?></td>
+                    <td><?php echo number_format($t['jumlah'], 2); ?></td>
+                    <td><?php echo ucfirst(htmlspecialchars($t['tipe'])); ?></td>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
         </table>
 
-        <a href="Logout" class="button">Logout</a>
+        <a href="Logout" class="btn btn-danger mt-4">Logout</a>
     </div>
 
-    <!-- Popup form untuk edit password -->
-    <div id="editPasswordModal" class="modal">
+    <!-- Modal untuk edit password -->
+    <!-- Modal untuk edit password -->
+<div class="modal fade" id="editPasswordModal" tabindex="-1" aria-labelledby="editPasswordModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>Edit Password</h2>
-                <span class="close" onclick="closeModal()">&times;</span>
+                <h5 class="modal-title" id="editPasswordModalLabel">Edit Password</h5>
+                <button type="button" class="btn-close" aria-label="Close" onclick="closeModal()"></button>
             </div>
             <div class="modal-body">
                 <form action="" method="post">
-                    <label for="new_password">Password Baru:</label>
-                    <input type="password" id="new_password" name="new_password" required>
-                    <label for="confirm_password">Konfirmasi Password:</label>
-                    <input type="password" id="confirm_password" name="confirm_password" required>
-                    <input type="submit" value="Update Password">
+                    <div class="mb-3">
+                        <label for="old_password" class="form-label">Password Lama:</label>
+                        <input type="password" id="old_password" name="old_password" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="new_password" class="form-label">Password Baru:</label>
+                        <input type="password" id="new_password" name="new_password" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="confirm_password" class="form-label">Konfirmasi Password:</label>
+                        <input type="password" id="confirm_password" name="confirm_password" class="form-control" required>
+                    </div>
+                    <div class="modal-footer">
+                        <input type="submit" class="btn btn-primary" value="Update Password">
+                    </div>
                 </form>
             </div>
         </div>
     </div>
+</div>
+
+
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
