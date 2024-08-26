@@ -17,7 +17,6 @@ try {
         $new_password = $_POST['new_password'];
         $confirm_password = $_POST['confirm_password'];
     
-        // Mendapatkan password lama dari database tanpa hashing
         $stmt = $pdo->prepare('SELECT password FROM nasabah WHERE id = ?');
         $stmt->execute([$nasabah_id]);
         $current_password = $stmt->fetchColumn();
@@ -25,10 +24,8 @@ try {
         echo "Password Lama dari Input: " . $old_password . "<br>";
         echo "Password Lama dari Database: " . $current_password . "<br>";
     
-        // Memverifikasi password lama tanpa hashing
         if ($old_password === $current_password) {
             if ($new_password === $confirm_password) {
-                // Update password baru ke database tanpa hashing
                 $update_stmt = $pdo->prepare('UPDATE nasabah SET password = ? WHERE id = ?');
                 $update_stmt->execute([$new_password, $nasabah_id]);
     
@@ -41,22 +38,18 @@ try {
         }
     }
     
-    // Mendapatkan data nasabah
     $stmt = $pdo->prepare('SELECT * FROM nasabah WHERE id = ?');
     $stmt->execute([$nasabah_id]);
     $nasabah = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    // Mendapatkan nama kelas
     $stmt = $pdo->prepare('SELECT nama FROM kelas WHERE id = ?');
     $stmt->execute([$nasabah['kelas_id']]);
     $kelas = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    // Mendapatkan nama jurusan
     $stmt = $pdo->prepare('SELECT nama FROM jurusan WHERE id = ?');
     $stmt->execute([$nasabah['jurusan_id']]);
     $jurusan = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    // Mendapatkan transaksi
     $stmt = $pdo->prepare('SELECT * FROM transaksi WHERE no_rekening = ? ORDER BY tanggal DESC');
     $stmt->execute([$nasabah['no_rekening']]);
     $transaksi = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -168,39 +161,35 @@ try {
         <a href="Logout" class="btn btn-danger mt-4">Logout</a>
     </div>
 
-    <!-- Modal untuk edit password -->
-    <!-- Modal untuk edit password -->
-<div class="modal fade" id="editPasswordModal" tabindex="-1" aria-labelledby="editPasswordModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="editPasswordModalLabel">Edit Password</h5>
-                <button type="button" class="btn-close" aria-label="Close" onclick="closeModal()"></button>
-            </div>
-            <div class="modal-body">
-                <form action="" method="post">
-                    <div class="mb-3">
-                        <label for="old_password" class="form-label">Password Lama:</label>
-                        <input type="password" id="old_password" name="old_password" class="form-control" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="new_password" class="form-label">Password Baru:</label>
-                        <input type="password" id="new_password" name="new_password" class="form-control" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="confirm_password" class="form-label">Konfirmasi Password:</label>
-                        <input type="password" id="confirm_password" name="confirm_password" class="form-control" required>
-                    </div>
-                    <div class="modal-footer">
-                        <input type="submit" class="btn btn-primary" value="Update Password">
-                    </div>
-                </form>
+    <div class="modal fade" id="editPasswordModal" tabindex="-1" aria-labelledby="editPasswordModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editPasswordModalLabel">Edit Password</h5>
+                    <button type="button" class="btn-close" aria-label="Close" onclick="closeModal()"></button>
+                </div>
+                <div class="modal-body">
+                    <form action="" method="post">
+                        <div class="mb-3">
+                            <label for="old_password" class="form-label">Password Lama:</label>
+                            <input type="password" id="old_password" name="old_password" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="new_password" class="form-label">Password Baru:</label>
+                            <input type="password" id="new_password" name="new_password" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="confirm_password" class="form-label">Konfirmasi Password:</label>
+                            <input type="password" id="confirm_password" name="confirm_password" class="form-control" required>
+                        </div>
+                        <div class="modal-footer">
+                            <input type="submit" class="btn btn-primary" value="Update Password">
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
-</div>
-
-
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
